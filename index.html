@@ -30,7 +30,7 @@
     .meta{text-align:center}
     .artist{font-weight:700;font-size:18px}
     .track{color:var(--muted);font-size:14px;margin-top:6px}
-    .controls{display:flex;gap:12px;align-items:center}
+    .controls{display:flex;gap:12px;align-items:center;margin-top:10px}
     .btn{
       background:var(--accent);border:none;padding:12px 18px;border-radius:999px;color:#061118;font-weight:700;cursor:pointer;font-size:16px;
       display:inline-flex;align-items:center;gap:8px;
@@ -45,11 +45,8 @@
   <div class="wrap">
     <div class="card" role="application" aria-label="Stream Player">
       <div class="cover" id="cover">
-        <img id="coverImg" src="image/svg+xml;utf8,
-          <svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'>
-            <rect width='100%' height='100%' fill='%23121a24'/>
-            <text x='50%' y='52%' fill='%239aa4b2' font-size='28' text-anchor='middle' font-family='Arial'>Cover</text>
-          </svg>"
+        <img id="coverImg"
+        src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><rect width='100%' height='100%' fill='%23121a24'/><text x='50%' y='52%' fill='%239aa4b2' font-size='28' text-anchor='middle' font-family='Arial'>Cover</text></svg>"
         alt="cover">
       </div>
 
@@ -58,9 +55,8 @@
         <div class="track" id="track">— поток не запущен —</div>
       </div>
 
-      <div class="controls" style="margin-top:10px">
+      <div class="controls">
         <button id="playBtn" class="btn">Play ▶</button>
-        <button id="stopBtn" class="btn secondary">Stop ◼</button>
       </div>
 
       <div class="status" id="status">Нажмите Play, чтобы начать</div>
@@ -80,10 +76,10 @@
 
   const player = document.getElementById('player');
   const playBtn = document.getElementById('playBtn');
-  const stopBtn = document.getElementById('stopBtn');
   const status = document.getElementById('status');
   const artistEl = document.getElementById('artist');
   const trackEl = document.getElementById('track');
+  const coverImg = document.getElementById('coverImg');
 
   let isPlaying = false;
 
@@ -116,14 +112,6 @@
     }
   });
 
-  stopBtn.addEventListener('click', () => {
-    player.pause();
-    player.currentTime = 0;
-    isPlaying = false;
-    updateUI();
-    status.textContent = 'Остановлено';
-  });
-
   player.addEventListener('waiting', () => status.textContent = 'Буферизация...');
   player.addEventListener('playing', () => status.textContent = 'Воспроизводится');
   player.addEventListener('pause', () => { if (!player.ended) status.textContent = 'Пауза'; });
@@ -139,12 +127,32 @@
       const data = await res.json();
       artistEl.textContent = data.artist || '— поток не запущен —';
       trackEl.textContent = data.title || '— поток не запущен —';
+
+      if (data.artist && data.title) {
+        const query = encodeURIComponent(`${data.artist} ${data.title}`);
+        const iTunesUrl = `https://itunes.apple.com/search?term=${query}&entity=song&limit=1`;
+
+        const resp = await fetch(iTunesUrl);
+        const result = await resp.json();
+
+        const artworkUrl = result.results?.[0]?.artworkUrl100;
+        if (artworkUrl) {
+          const bigArt = artworkUrl.replace('100x100bb', '300x300bb');
+          coverImg.src = bigArt;
+        } else {
+          coverImg.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><rect width='100%' height='100%' fill='%23121a24'/><text x='50%' y='52%' fill='%239aa4b2' font-size='28' text-anchor='middle' font-family='Arial'>No Cover</text></svg>";
+        }
+      } else {
+        coverImg.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><rect width='100%' height='100%' fill='%23121a24'/><text x='50%' y='52%' fill='%239aa4b2' font-size='28' text-anchor='middle' font-family='Arial'>No Cover</text></svg>";
+      }
     } catch(e){
       console.error(e);
       artistEl.textContent = 'Ошибка';
       trackEl.textContent = 'Ошибка';
+      coverImg.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><rect width='100%' height='100%' fill='%23121a24'/><text x='50%' y='52%' fill='%239aa4b2' font-size='28' text-anchor='middle' font-family='Arial'>Error</text></svg>";
     }
   }
+
   updateTrack();
   setInterval(updateTrack, 10000);
 </script>
